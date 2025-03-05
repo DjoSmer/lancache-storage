@@ -1,0 +1,29 @@
+# production
+/build
+
+# dependencies
+/node_modules
+
+# misc
+.DS_Store
+*.pem
+_*
+
+# IDEs and editors
+/.idea
+
+# IDE - VSCode
+/.vscode
+
+# debug
+/logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+
+#env files
+.env

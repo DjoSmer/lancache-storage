@@ -1,0 +1,3 @@
+map $status $loggable {
+    default ${NGINX_LOG};
+}

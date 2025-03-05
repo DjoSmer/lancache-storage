@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es5",                          
+    "module": "commonjs",                    
+    "lib": ["es6"],                     
+    "allowJs": false,
+    "outDir": "build",                          
+    "rootDir": "src",
+    "baseUrl": "./",
+    "strict": true,         
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@app/*": ["./src/*"]
+    },
+  },
+  "exclude": ["_*"]
+}
