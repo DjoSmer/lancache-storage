@@ -35,12 +35,12 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
 
       if (!rangeHeader) {
         fs.createReadStream(storageFile.filepath)
-          .pipe(this)
           .on('end', () => {
             storageFile.increaseDownloadCount();
             storageFile.close();
             this.logger.debug(`Stream is done: ${rid}`);
-          });
+          })
+          .pipe(this);
         return;
       }
 
@@ -91,12 +91,12 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
           // 'Content-Type': 'video/mp4',
         });
         fs.createReadStream(storageFile.filepath, { start: range.start, end: range.end })
-          .pipe(this)
           .on('end', () => {
             storageFile.increaseDownloadCount();
             storageFile.close();
             this.logger.debug(`Range Stream is done: ${rid}`);
-          });
+          })
+          .pipe(this);
       }
 
     } catch (err) {

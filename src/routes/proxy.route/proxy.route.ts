@@ -47,7 +47,7 @@ export class ProxyRoute {
 
     const basePath = target.id + lanReq.url;
 
-    const storageFile = this.lancacheStorage.find(basePath) || this.lancacheStorage.create(basePath);
+    const storageFile = this.lancacheStorage.get(basePath) || this.lancacheStorage.create(basePath);
     lanRes.storageFile = storageFile;
 
     this.logger.debug(`Storage target/status: ${target.id}${rid}/${storageFile.status}`);

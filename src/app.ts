@@ -2,8 +2,9 @@ import { LancacheServer } from '@app/server';
 import { ProxyRoute } from './routes/proxy.route';
 
 import { statusRoute } from './routes/status-route';
-// import { StorageRoute } from './routes/storage.route';
-import { LancacheStorage } from './storage';
+import { storageSaveRoute } from './routes/storage-save';
+import { StorageRoute } from './routes/storage.route';
+import { LancacheStorage, LancacheStorageSqlLite, LancacheStorageFile } from './storage';
 import lancacheConfig from '../lancache.config.json';
 
 export class App {
@@ -11,12 +12,13 @@ export class App {
   readonly storage: LancacheStorage
 
   constructor(config: Record<string, string>) {
-    this.storage = new LancacheStorage(config.storageDir);
-    const proxyRoute = new ProxyRoute(this.storage, lancacheConfig);
-    // const storageRoute = new StorageRoute(this.storage, lancacheConfig);
-    this.httpServer = new LancacheServer(proxyRoute.route);
+    this.storage = new LancacheStorageSqlLite(config.storageDir);
+    const defaultRoute = new ProxyRoute(this.storage, lancacheConfig);
+    // const defaultRoute = new StorageRoute(this.storage, lancacheConfig);
+    this.httpServer = new LancacheServer(defaultRoute.route);
 
     this.httpServer.addRoute('/status', statusRoute);
+    this.httpServer.addRoute('/storage-save', storageSaveRoute);
   }
 
   run() {

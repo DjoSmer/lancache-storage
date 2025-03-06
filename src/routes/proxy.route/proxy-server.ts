@@ -23,6 +23,7 @@ export class ProxyServer {
 
   private handlerProxyRes(proxyRes: LancacheRequest, lanReq: LancacheRequest, lanRes: LancacheResponse) {
     const rid = lanReq.rid;
+    this.logger.debug(`Client Headers ${rid} ${JSON.stringify(lanReq.headers, null, 2)}`);
     this.logger.debug(`Proxy Headers ${rid} ${JSON.stringify(proxyRes.headers, null, 2)}`);
     //this.logger.debug(`Proxy is starting to steam: ${rid}`);
 

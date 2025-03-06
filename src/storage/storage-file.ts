@@ -20,25 +20,17 @@ export class StorageFile {
     if (status) this.status = status;
 
     this.logger.debug(`Close instance storage: ${this.data.basePath}/${this.instanceCount}`);
-    if (this.instanceCount < 1) this.save();
+    this.save();
   }
 
   save() {
-    this.mkdir();
-    const filepath = path.join(this.lancacheStorage.storagePath, path.join(this.data.basePath, this.lancacheStorage.dataFileName));
-    fs.writeFileSync(filepath, JSON.stringify(this.data));
-
-    this.lancacheStorage.close(this);
+    this.lancacheStorage.save(this.data);
     this.logger.debug(`Save storage: ${this.data.basePath}/${this.instanceCount}`);
   }
 
   increaseDownloadCount() {
     this.data.downloadCount++;
     this.data.updatedAt = new Date();
-  }
-
-  get basePath() {
-    return this.data.basePath;
   }
 
   get status() {
@@ -61,15 +53,16 @@ export class StorageFile {
 
   get filepath() {
     this.mkdir();
-    return path.join(this.lancacheStorage.storagePath, this.data.basePath, this.lancacheStorage.fileName);
+    return path.join(this.lancacheStorage.storagePath, this.data.basePath);
   }
 
   get relativeFilepath() {
-    return path.join('/', this.data.basePath, this.lancacheStorage.fileName);
+    return path.join('/', this.data.basePath);
   }
 
   private mkdir() {
-    const dir = path.join(this.lancacheStorage.storagePath, this.data.basePath);
+    const filepath = path.join(this.lancacheStorage.storagePath, this.data.basePath);
+    const dir = path.dirname(filepath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   }
 }

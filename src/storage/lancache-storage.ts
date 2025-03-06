@@ -1,25 +1,20 @@
-import path from 'path';
+import winston from 'winston';
 
-import { createLogger } from '../logger';
 import { StorageFile } from './storage-file';
+import { StorageFileData } from './types';
 
-export class LancacheStorage {
-  openStorageFiles = new Map<string, StorageFile>();
-  logger = createLogger(LancacheStorage.name);
-  fileName = 'file';
-  dataFileName = 'data.json';
+export abstract class LancacheStorage {
+  protected openStorageFiles = new Map<string, StorageFile>();
+  protected abstract logger: winston.Logger;
 
-  constructor(readonly storagePath: string) {}
+  protected constructor(readonly storagePath: string) {}
 
-  find(basePath: string): StorageFile | undefined {
-    const relativePath = path.join(basePath, this.dataFileName);
-    const fullPath = path.join(this.storagePath, relativePath);
-
+  get(basePath: string): StorageFile | undefined {
     try {
-      const fileData = this.openStorageFiles.get(basePath) || new StorageFile(this, require(fullPath));
+      const fileData = this.openStorageFiles.get(basePath) || new StorageFile(this, this.find(basePath));
       fileData.instanceCount++;
 
-      if (!this.openStorageFiles.has(basePath)) this.openStorageFiles.set(relativePath, fileData);
+      if (!this.openStorageFiles.has(basePath)) this.openStorageFiles.set(basePath, fileData);
 
       return fileData;
     } catch (e) {
@@ -27,11 +22,14 @@ export class LancacheStorage {
     }
   }
 
+  abstract find(basePath: string): StorageFileData;
+
   create(basePath: string) {
     const storageFile = new StorageFile(this, {
       createdAt: new Date(),
       updatedAt: new Date(),
       downloadCount: 0,
+      target: basePath.split('/').at(0) || 'unknown',
       basePath,
       headers: {},
       status: 'idle',
@@ -43,11 +41,16 @@ export class LancacheStorage {
     return storageFile;
   }
 
+  save(data: StorageFileData) {
+    const storageFile = this.openStorageFiles.get(data.basePath);
+    if (storageFile && storageFile.instanceCount < 1) this.close(data);
+  }
+
   saveAll() {
     Array.from(this.openStorageFiles.values()).forEach((storageFile) => storageFile.save());
   }
 
-  close(storageFile: StorageFile) {
-    this.openStorageFiles.delete(storageFile.basePath);
+  close(data: StorageFileData) {
+    this.openStorageFiles.delete(data.basePath);
   }
 }
