@@ -1,17 +1,26 @@
 import winston from 'winston';
 
 import { StorageFile } from './storage-file';
-import { StorageFileData } from './types';
+import { StorageFileData, StorageTarget, StorageTargetProps } from './types';
+
+import lancacheConfig from '../../lancache.config.json';
 
 export abstract class LancacheStorage {
-  protected openStorageFiles = new Map<string, StorageFile>();
   protected abstract logger: winston.Logger;
+  protected openStorageFiles = new Map<string, StorageFile>();
+  protected noStorage: string[] = [];
+  protected targets: StorageTarget[] = [];
 
-  protected constructor(readonly storagePath: string) {}
+  protected constructor(readonly storagePath: string) {
+    const {noStorage, targets} = lancacheConfig;
 
-  get(basePath: string): StorageFile | undefined {
+    this.noStorage = noStorage;
+    this.targets = targets;
+  }
+
+  async get(basePath: string): Promise<StorageFile | undefined> {
     try {
-      const fileData = this.openStorageFiles.get(basePath) || new StorageFile(this, this.find(basePath));
+      const fileData = this.openStorageFiles.get(basePath) || new StorageFile(this, await this.find(basePath));
       fileData.instanceCount++;
 
       if (!this.openStorageFiles.has(basePath)) this.openStorageFiles.set(basePath, fileData);
@@ -22,7 +31,7 @@ export abstract class LancacheStorage {
     }
   }
 
-  abstract find(basePath: string): StorageFileData;
+  abstract find(basePath: string): Promise<StorageFileData>;
 
   create(basePath: string) {
     const storageFile = new StorageFile(this, {
@@ -48,9 +57,23 @@ export abstract class LancacheStorage {
 
   saveAll() {
     Array.from(this.openStorageFiles.values()).forEach((storageFile) => storageFile.save());
+    return this.openStorageFiles.size;
   }
 
   close(data: StorageFileData) {
+    const beforeSize = this.openStorageFiles.size;
     this.openStorageFiles.delete(data.basePath);
+    const afterSize = this.openStorageFiles.size;
+    this.logger.debug(`Close ${data.basePath} storage file ${beforeSize}/${afterSize}`);
+  }
+
+  getTarget({ host, url, userAgent }: StorageTargetProps) {
+    if (this.noStorage.some((regExp) => url?.match(new RegExp(regExp, 'i')))) return false;
+
+    return this.targets.find((target) => {
+      if (target.userAgent && target.userAgent === userAgent) return true;
+      else if (target.host && host?.includes(target.host)) return true;
+      return false;
+    });
   }
 }

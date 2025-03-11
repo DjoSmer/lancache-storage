@@ -1,0 +1,17 @@
+{
+    "noStorage": [
+        "\\.(json|exe|css|cur|js|jpe?g|gif|ico|png|svg|webp|webm|html|woff|woff2|xml)",
+        "(authrootstl.cab|pinrulesstl.cab|disallowedcertstl.cab)$",
+        "^.+(releaselisting_.*|.version$)"
+    ],
+    "targets": [
+        {
+            "code": "steam",
+            "userAgent": "Valve/Steam HTTP Client 1.0"
+        },
+        {
+            "code": "riot",
+            "userAgent": "RiotNetwork/1.0.0"
+        }
+    ]
+}

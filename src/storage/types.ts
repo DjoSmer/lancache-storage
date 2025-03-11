@@ -12,3 +12,16 @@ export interface StorageEntity extends Omit<StorageFileData, 'headers'> {
     id: number;
     headers: string;
 }
+
+export interface StorageTarget {
+    code: string;
+    userAgent?: string;
+    host?: string;
+    https?: boolean;
+}
+
+export interface StorageTargetProps {
+    host?: string;
+    userAgent?: string;
+    url?: string;
+}

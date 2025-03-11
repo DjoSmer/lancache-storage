@@ -35,20 +35,20 @@ export class LancacheStorageSqlLite extends LancacheStorage {
     this.logger.debug(`DB created`);
   }
 
-  find(basePath: string): StorageFileData {
+  find(basePath: string): Promise<StorageFileData> {
     const q = this.db.prepare('SELECT * FROM storage WHERE basePath = ?');
     const entity = q.get(basePath) as StorageEntity;
 
     if (!entity) throw new Error('SqlLite: Data not found');
 
     const { headers, id, ...data } = entity;
-    return { ...data, headers: JSON.parse(headers) };
+    return Promise.resolve({ ...data, headers: JSON.parse(headers) });
   }
 
-  save(data: StorageFileData) {
+  async save(data: StorageFileData) {
     let entity: StorageFileData | undefined;
     try {
-      entity = this.find(data.basePath);
+      entity = await this.find(data.basePath);
     } catch (e) {
       entity = undefined;
     }
@@ -104,6 +104,8 @@ export class LancacheStorageSqlLite extends LancacheStorage {
 
       this.logger.debug(`Add ${data.basePath}`, { params });
     }
+
+    super.save(data);
   }
 
   private getLastId() {
@@ -113,7 +115,6 @@ export class LancacheStorageSqlLite extends LancacheStorage {
       this.lastId = entity ? entity.id : 0;
       this.logger.debug(`Getting last id: ${this.lastId}`);
     } catch (e) {
-      this.logger.debug(`GetLastId`, { e })
       this.init();
     }
   }

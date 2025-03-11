@@ -20,7 +20,7 @@ export class StorageFile {
     if (status) this.status = status;
 
     this.logger.debug(`Close instance storage: ${this.data.basePath}/${this.instanceCount}`);
-    this.save();
+    if (this.instanceCount < 1) this.save();
   }
 
   save() {

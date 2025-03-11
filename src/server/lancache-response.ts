@@ -12,6 +12,14 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
   private logger = createLogger(LancacheResponse.name);
   lanHeaders: Record<string, string> = {};
 
+  constructor(req: LancacheRequest) {
+    super(req);
+
+    this.on('close', () => {
+      this.accessLog();
+    });
+  }
+
   sendFileFromStorage() {
     const rid = this.req.rid;
     const storageFile = this.storageFile;
@@ -27,7 +35,7 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
       const total = stat.size;
       const rangeHeader = this.req.headers.range;
 
-      const headers = new Headers(storageFile.headers);
+      const headers = new Headers(storageFile.headers as unknown as Headers);
       this.setHeaders(headers);
       this.storageStatus('HIT');
 
@@ -88,7 +96,6 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
           'Content-Range': `bytes ${range.start}-${range.end}/${total}`,
           'Accept-Ranges': 'bytes',
           'Content-Length': (range.end - range.start) + 1,
-          // 'Content-Type': 'video/mp4',
         });
         fs.createReadStream(storageFile.filepath, { start: range.start, end: range.end })
           .on('end', () => {
@@ -109,7 +116,7 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
 
   accessLog() {
     const req = this.req;
-    this.logger.info(`[${req.requestId}] Host: ${req.headers.host}${req.url} storageStatus: hit/miss `);
+    this.logger.info(`[${req.requestId}] ${req.socket.remoteAddress} > ${req.headers.host}${req.url} storageStatus: ${this._storageStatus}`);
   }
 
   storageStatus(storageStatus: LancacheResponse['_storageStatus']) {
