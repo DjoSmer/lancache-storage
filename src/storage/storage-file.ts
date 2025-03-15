@@ -1,31 +1,57 @@
 import fs from 'fs';
 import path from 'path';
+import winston from 'winston';
 
-import { createLogger } from '../logger';
 import { LancacheStorage } from './lancache-storage';
 import { StorageFileData } from './types';
 
 export class StorageFile {
-  instanceCount = 0;
-  private logger = createLogger(StorageFile.name);
+  instances = new Set<number>();
+  private ip: Record<string, { count: number, timerId?: NodeJS.Timeout }> = {}
+  private ipDelay = 5000;
+  private limitForOneIp = 3;
+  private logger: winston.Logger;
 
   constructor(
     private readonly lancacheStorage: LancacheStorage,
     private data: StorageFileData,
-  ) {}
+  ) {
+    this.logger = lancacheStorage.logger;
+  }
 
-  close(status?: StorageFileData['status']) {
-    this.instanceCount--;
+  addInstance(instance: number, ip: string) {
+    if (!this.ip[ip]) this.ip[ip] = { count: 1 };
+    else {
+      this.ip[ip].count++
+      clearTimeout(this.ip[ip].timerId);
+    }
+
+    this.instances.add(instance);
+
+    if (this.ip[ip].count >= this.limitForOneIp) {
+      this.status = 'error';
+      this.logger.warn(`${ip} asked for ${this.ip[ip].count} times ${this.data.basePath}`);
+    }
+  }
+
+  close(instanceId: number, ip: string, status?: StorageFileData['status']) {
+    this.instances.delete(instanceId);
 
     if (status) this.status = status;
 
-    this.logger.debug(`Close instance storage: ${this.data.basePath}/${this.instanceCount}`);
-    if (this.instanceCount < 1) this.save();
+    this.ip[ip].timerId = setTimeout(() => this.decreaseIpCount(ip), this.ipDelay);
+
+    this.logger.debug(`Close instance storage: ${this.data.basePath}:${instanceId}/${this.instances.size}`);
   }
 
   save() {
+    if (this.status === 'noSave') {
+      this.lancacheStorage.close(this.data);
+      return;
+    }
+
     this.lancacheStorage.save(this.data);
-    this.logger.debug(`Save storage: ${this.data.basePath}/${this.instanceCount}`);
+    this.logger.debug(`Save storage: ${this.data.basePath}/${this.instances.size}`);
   }
 
   increaseDownloadCount() {
@@ -51,18 +77,35 @@ export class StorageFile {
     this.data.updatedAt = new Date();
   }
 
+  /**
+   * if basePath doesn't have extname it can be a dir or a file.
+   * if basePath is first/second a file save to first/second.file.
+   * if basePath is first/second/third a file save to first/second/third.file.
+   * if basePath is first/second/third.ext a file save to first/second/third.ext.
+   */
   get filepath() {
     this.mkdir();
-    return path.join(this.lancacheStorage.storagePath, this.data.basePath);
+    const extname = path.extname(this.data.basePath);
+    //TODO check for old files in storage | remove date check
+    const basePath = this.data.createdAt.getTime() > 1741801602071 ? this.data.basePath + (!extname ? '.file' : '') : this.data.basePath;
+    return path.join(this.lancacheStorage.storagePath, basePath);
   }
 
   get relativeFilepath() {
-    return path.join('/', this.data.basePath);
+    const extname = path.extname(this.data.basePath);
+    //TODO check for old files in storage | remove date check
+    const basePath = this.data.createdAt.getTime() > 1741801602071 ? this.data.basePath + (!extname ? '.file' : '') : this.data.basePath;
+    return path.join('/', basePath);
   }
 
   private mkdir() {
     const filepath = path.join(this.lancacheStorage.storagePath, this.data.basePath);
     const dir = path.dirname(filepath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+
+  private decreaseIpCount(ip: string) {
+    Reflect.deleteProperty(this.ip, ip);
+    if (this.instances.size < 1) this.save();
   }
 }

@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc",
     "start:dev": "NODE_ENV=development npx nodemon",
-    "start": "node -r ts-node/register/transpile-only -r tsconfig-paths/register build/index.js",
+    "start": "ts-node -r tsconfig-paths/register build/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Demidov",

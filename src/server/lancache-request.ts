@@ -9,4 +9,9 @@ export class LancacheRequest extends IncomingMessage {
         super(socket);
         this.rid = `${this.requestId}`;
     }
+
+    getIp() {
+        const ip = this.headers['x-real-ip'];
+        return ip ? ip.toString() : this.socket.remoteAddress || 'ip-unknown';
+    }
 }

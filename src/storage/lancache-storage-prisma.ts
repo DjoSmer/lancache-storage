@@ -5,7 +5,7 @@ import { LancacheStorage } from './lancache-storage';
 import { StorageFileData } from './types';
 
 export class LancacheStoragePrisma extends LancacheStorage {
-  protected logger = createLogger(LancacheStoragePrisma.name);
+  logger = createLogger(LancacheStoragePrisma.name);
 
   private prisma = new PrismaClient();
 
@@ -20,9 +20,9 @@ export class LancacheStoragePrisma extends LancacheStorage {
       where: {
         basePath
       }
-    })
+    });
 
-    if (!entity) throw new Error('SqlLite: Data not found');
+    if (!entity) throw new Error('File not found');
 
     const { id, ...data } = entity;
     return { ...data } as StorageFileData;

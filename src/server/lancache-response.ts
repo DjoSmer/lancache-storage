@@ -17,6 +17,7 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
 
     this.on('close', () => {
       this.accessLog();
+      this.logger.close();
     });
   }
 
@@ -30,6 +31,14 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
       return;
     }
 
+    let stream: fs.ReadStream | null = null;
+
+    this.on('close', () => {
+      if (stream) stream.close();
+      storageFile.increaseDownloadCount();
+      storageFile.close(this.req.requestId, this.req.getIp());
+    });
+
     try {
       const stat = fs.statSync(storageFile.filepath);
       const total = stat.size;
@@ -41,14 +50,13 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
 
       this.logger.debug(`Stream file is stating: ${rid}`);
 
+      //Complete file
       if (!rangeHeader) {
-        fs.createReadStream(storageFile.filepath)
+        stream = fs.createReadStream(storageFile.filepath)
           .on('end', () => {
-            storageFile.increaseDownloadCount();
-            storageFile.close();
             this.logger.debug(`Stream is done: ${rid}`);
-          })
-          .pipe(this);
+          });
+        stream.pipe(this);
         return;
       }
 
@@ -60,6 +68,7 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
         return;
       }
 
+      // Ranges
       if (ranges.length > 1) {
         const contentType = this.getHeader('Content-Type');
         const boundary = 'MULTIPART_BOUNDARY';
@@ -72,8 +81,11 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
           this.write(`\r\n--${boundary}\r\n`);
           this.write(`Content-Type: ${contentType}\r\n`);
           this.write(`Content-Range: bytes ${range.start}-${range.end}/${total}\r\n\r\n`);
-          const stream = fs.createReadStream(storageFile.filepath, { start: range.start, end: range.end });
-          stream.on('end', callback);
+          stream = fs.createReadStream(storageFile.filepath, { start: range.start, end: range.end });
+          stream.on('end', () => {
+            stream?.close();
+            callback();
+          });
           stream.pipe(this, { end: false });
         };
 
@@ -82,32 +94,27 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
             sendPart(ranges[index], () => sendNext(index + 1));
           } else {
             this.end(`\r\n--${boundary}--\r\n`);
-            storageFile.increaseDownloadCount();
-            storageFile.close();
             this.logger.debug(`Ranges Stream are done: ${rid}`);
           }
         };
 
         sendNext(0);
       } else {
-        // Один диапазон
+        // Single range
         const range = ranges[0];
         this.writeHead(206, {
           'Content-Range': `bytes ${range.start}-${range.end}/${total}`,
           'Accept-Ranges': 'bytes',
           'Content-Length': (range.end - range.start) + 1,
         });
-        fs.createReadStream(storageFile.filepath, { start: range.start, end: range.end })
+        stream = fs.createReadStream(storageFile.filepath, { start: range.start, end: range.end })
           .on('end', () => {
-            storageFile.increaseDownloadCount();
-            storageFile.close();
             this.logger.debug(`Range Stream is done: ${rid}`);
-          })
-          .pipe(this);
+          });
+        stream.pipe(this);
       }
 
     } catch (err) {
-      storageFile.close();
       this.writeHead(500, 'When trying to send a file, something went wrong');
       this.end();
       this.logger.error(err);
@@ -116,7 +123,7 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
 
   accessLog() {
     const req = this.req;
-    this.logger.info(`[${req.requestId}] ${req.socket.remoteAddress} > ${req.headers.host}${req.url} storageStatus: ${this._storageStatus}`);
+    this.logger.info(`[${req.requestId}] ${req.getIp()} > ${req.headers.host}${req.url} ${this.statusCode} ${this._storageStatus}`);
   }
 
   storageStatus(storageStatus: LancacheResponse['_storageStatus']) {

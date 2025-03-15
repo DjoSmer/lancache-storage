@@ -25,7 +25,10 @@ const deleteFiles = async (storages) => {
 
   const ids = [];
   for (const storage of storages) {
-    const { id, basePath } = storage;
+    let { id, basePath, createdAt } = storage;
+    const extname = path.extname(this.data.basePath);
+    //TODO remove date check
+    basePath = createdAt.getTime() > 1741801602071 ? basePath + (!extname ? '.file' : '') : basePath;
     const filepath = path.join(storageDir, basePath);
     if (fs.existsSync(filepath)) fs.rmSync(filepath);
     ids.push(id);

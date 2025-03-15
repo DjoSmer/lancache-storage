@@ -1,9 +1,7 @@
-import fs from 'fs';
-import http from 'http';
-
 import { createLogger } from '@app/logger';
 import { LancacheStorage } from '@app/storage/lancache-storage';
 import { LancacheRequestListener, LancacheResponse, LancacheRequest } from '@app/server';
+import { downloadToStorage } from './downloadToStorage';
 
 import { ProxyServer } from './proxy-server';
 
@@ -32,8 +30,12 @@ export class DefaultRoute {
     }
 
     lanRes.storageStatus('MISS');
-
-    this.proxyServer.web(lanReq, lanRes, { target: `http://${lanReq.headers.host}`, proxyTimeout: 15000 });
+    try {
+      this.proxyServer.web(lanReq, lanRes, { target: `http://${lanReq.headers.host}`, proxyTimeout: 15000 });
+    } catch (e) {
+      this.logger.error(`Catch ProxyServer: `, e);
+      lanRes.destroy(e as Error);
+    }
 
     return;
   };
@@ -56,11 +58,11 @@ export class DefaultRoute {
       lanRes.end();
 
       storageFile.increaseDownloadCount();
-      storageFile.close();
+      storageFile.close(lanReq.requestId, lanReq.getIp());
       return;
     }
 
-    this.downloadToStorage(lanReq, lanRes);
+    void this.downloadToStorage(lanReq, lanRes);
 
     lanRes.storageStatus('MISS');
     lanRes.writeHead(404, 'File not found in storage');
@@ -71,18 +73,20 @@ export class DefaultRoute {
 
   private async checkInStorage(lanReq: LancacheRequest, lanRes: LancacheResponse): Promise<boolean> {
     const rid = lanReq.rid;
+    const { pathname } = new URL('http://localhost' + lanReq.url);
 
     const target = this.lancacheStorage.getTarget({
       host: lanReq.headers['host'],
       userAgent: lanReq.headers['user-agent'],
-      url: lanReq.url,
+      url: pathname,
     });
 
     if (!target) return false;
 
-    const basePath = target.code + lanReq.url;
+    const basePath = target.code + pathname;
 
     const storageFile = await this.lancacheStorage.get(basePath) || this.lancacheStorage.create(basePath);
+    storageFile.addInstance(lanReq.requestId, lanReq.getIp());
     lanRes.storageFile = storageFile;
 
     this.logger.debug(`Storage target - status: ${target.code}${rid} - ${storageFile.status}`);
@@ -90,40 +94,25 @@ export class DefaultRoute {
     return storageFile.status === 'success';
   }
 
-  private downloadToStorage(lanReq: LancacheRequest, lanRes: LancacheResponse): boolean {
-    const rid = lanReq.rid;
-    const { range, ...headers } = lanReq.headers;
-
+  private async downloadToStorage(lanReq: LancacheRequest, lanRes: LancacheResponse): Promise<boolean> {
     if (lanReq.method !== 'GET' || !lanRes.storageFile
       || (lanRes.storageFile.status !== 'idle' && lanRes.storageFile.status !== 'error')
     ) {
+      lanRes.storageFile?.close(lanReq.requestId, lanReq.getIp());
       return false;
     }
 
     const storageFile = lanRes.storageFile;
     storageFile.status = 'pending';
 
-    http.get(`http://${lanReq.headers.host}${lanReq.url}`, {
-      method: 'GET',
-      headers,
-    }, (res) => {
-      this.logger.debug(`Target Headers ${rid} ${JSON.stringify(res.headers, null, 2)}`);
-
-      const fileStream = fs.createWriteStream(storageFile.filepath);
-      fileStream.on('finish', () => {
-        this.logger.debug(`File was saved in the storage: ${rid}`);
-        storageFile.close('success');
-        fileStream.close();
-      });
-
-      res.on('error', (err) => {
-        this.logger.error(`When saving to the storage: ${rid}`, err);
-        storageFile.close('error');
-      });
-
-      storageFile.headers = res.headers as Record<string, string>;
-      res.pipe(fileStream);
-    });
+    let status: typeof storageFile['status'] = 'error';
+    for (let x = 0; x < 3; x++) {
+      try {
+        status = await downloadToStorage(lanReq, storageFile, this.logger);
+        break;
+      } catch (e) {}
+    }
+    storageFile.close(lanReq.requestId, lanReq.getIp(), status);
 
     return true;
   }

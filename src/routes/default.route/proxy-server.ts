@@ -1,10 +1,10 @@
 import fs from 'fs';
-import http from 'http';
 import httpProxy from 'http-proxy';
 import { Socket } from 'net';
 
 import { createLogger } from '@app/logger';
 import { LancacheRequest, LancacheResponse } from '@app/server';
+import { downloadToStorage } from './downloadToStorage';
 
 export class ProxyServer {
   private readonly logger = createLogger(ProxyServer.name);
@@ -21,11 +21,9 @@ export class ProxyServer {
     });
   }
 
-  private handlerProxyRes(proxyRes: LancacheRequest, lanReq: LancacheRequest, lanRes: LancacheResponse) {
+  private async handlerProxyRes(proxyRes: LancacheRequest, lanReq: LancacheRequest, lanRes: LancacheResponse) {
     const rid = lanReq.rid;
-    this.logger.debug(`Client Headers ${rid} ${JSON.stringify(lanReq.headers, null, 2)}`);
-    this.logger.debug(`Proxy Headers ${rid} ${JSON.stringify(proxyRes.headers, null, 2)}`);
-    //this.logger.debug(`Proxy is starting to steam: ${rid}`);
+    this.logger.debug(`Proxy Headers ${rid} ${JSON.stringify([lanReq.headers, proxyRes.headers], null, 2)}`);
 
     proxyRes.on('error', (err) => {
       this.logger.error(`ResError ${rid}`, err);
@@ -35,49 +33,50 @@ export class ProxyServer {
     if (lanReq.method !== 'GET' || !lanRes.storageFile
       || (lanRes.storageFile.status !== 'idle' && lanRes.storageFile.status !== 'error')
     ) {
+      lanRes.storageFile?.close(lanReq.requestId, lanReq.getIp());
       return;
     }
 
     const storageFile = lanRes.storageFile;
     storageFile.status = 'pending';
 
+    if (!proxyRes.statusCode || proxyRes.statusCode > 299) {
+      storageFile.close(lanReq.requestId, lanReq.getIp(), 'noSave');
+      return;
+    }
+
+    let status: typeof storageFile['status'] = 'error';
+
     if (lanReq.headers.range) {
       lanRes.storageFile = undefined;
 
-      const { range, ...headers } = lanReq.headers;
-      http.get(`http://${lanReq.headers.host}${lanReq.url}`, {
-        method: 'GET',
-        headers,
-      }, (res) => {
-        const fileStream = fs.createWriteStream(storageFile.filepath);
-        fileStream.on('finish', () => {
-          this.logger.debug(`File was saved in the storage: ${rid}`);
-          storageFile.close('success');
-          fileStream.close();
-        });
-
-        res.on('error', (err) => {
-          this.logger.error(`When saving to the storage: ${rid}`, err);
-          storageFile.close('error');
-        });
-
-        storageFile.headers = res.headers as Record<string, string>;
-        res.pipe(fileStream);
-      });
+      for (let x = 0; x < 3; x++) {
+        try {
+          status = await downloadToStorage(lanReq, storageFile, this.logger);
+          break;
+        } catch (e) {}
+      }
+      storageFile.close(lanReq.requestId, lanReq.getIp(), status);
 
       return;
     }
 
     //Download full file
     const fileStream = fs.createWriteStream(storageFile.filepath);
-    fileStream.on('finish', () => {
+
+    const handleFinish = () => {
       this.logger.debug(`File download in the storage: ${rid}`);
-      storageFile.close('success');
       fileStream.close();
-    });
+      storageFile.close(lanReq.requestId, lanReq.getIp(), 'success');
+    }
+
+    fileStream.on('finish', handleFinish);
 
     proxyRes.on('error', (err) => {
-      lanRes?.storageFile?.close('error');
+      fileStream.removeListener('finish', handleFinish);
+      fileStream.close();
+      storageFile.close(lanReq.requestId, lanReq.getIp(), 'error');
+      this.logger.error(`proxyRes.error ${rid}`, err);
     });
 
     storageFile.headers = proxyRes.headers as Record<string, string>;

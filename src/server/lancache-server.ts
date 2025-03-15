@@ -1,12 +1,10 @@
 import { createServer } from 'http';
 
-import { createLogger } from '../logger';
 import { LancacheRequest } from './lancache-request';
 import { LancacheResponse } from './lancache-response';
 import { LancacheRequestListener } from './types';
 
 export class LancacheServer {
-  private readonly logger = createLogger('HTTP Server');
   routes = new Map<string, LancacheRequestListener>();
   readonly server = createServer({
     IncomingMessage: LancacheRequest,

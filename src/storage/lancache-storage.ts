@@ -6,7 +6,7 @@ import { StorageFileData, StorageTarget, StorageTargetProps } from './types';
 import lancacheConfig from '../../lancache.config.json';
 
 export abstract class LancacheStorage {
-  protected abstract logger: winston.Logger;
+  abstract logger: winston.Logger;
   protected openStorageFiles = new Map<string, StorageFile>();
   protected noStorage: string[] = [];
   protected targets: StorageTarget[] = [];
@@ -21,7 +21,6 @@ export abstract class LancacheStorage {
   async get(basePath: string): Promise<StorageFile | undefined> {
     try {
       const fileData = this.openStorageFiles.get(basePath) || new StorageFile(this, await this.find(basePath));
-      fileData.instanceCount++;
 
       if (!this.openStorageFiles.has(basePath)) this.openStorageFiles.set(basePath, fileData);
 
@@ -43,7 +42,6 @@ export abstract class LancacheStorage {
       headers: {},
       status: 'idle',
     });
-    storageFile.instanceCount++;
 
     this.logger.debug(`Create new file storage: ${basePath}`);
     this.openStorageFiles.set(basePath, storageFile);
@@ -52,7 +50,7 @@ export abstract class LancacheStorage {
 
   save(data: StorageFileData) {
     const storageFile = this.openStorageFiles.get(data.basePath);
-    if (storageFile && storageFile.instanceCount < 1) this.close(data);
+    if (storageFile && storageFile.instances.size < 1) this.close(data);
   }
 
   saveAll() {

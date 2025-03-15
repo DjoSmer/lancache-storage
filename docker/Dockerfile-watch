@@ -1,0 +1,23 @@
+FROM node:22-alpine as base
+WORKDIR /app
+
+COPY tsconfig.json package*.json prisma ./
+RUN mkdir -m 755 -p /data/storage ;\
+    npm ci --omit=dev && npx prisma generate
+
+
+# Production image
+FROM base AS runner
+LABEL version=1
+LABEL description="Remove old files and watch storage size"
+LABEL maintainer="DjoSmer <djos.ghub@mail.ru>"
+
+WORKDIR /app
+
+ENV STORAGE_DIR=/data/storage \
+    STORAGE_DISK_SIZE=512G \
+    STORAGE_MAX_AGE=2w
+
+COPY tools/storage-watch-prisma.mjs ./
+
+CMD ["node", "storage-watch-prisma.mjs"]

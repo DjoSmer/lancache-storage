@@ -15,31 +15,29 @@ export const createLogger = (label: string) => {
   ];
 
   const fileLogTransport = new transports.DailyRotateFile({
-    filename: 'actions-%DATE%.log',
+    filename: 'lc-actions-%DATE%.log',
     datePattern: 'YYYY-MM-DD',
     dirname: 'logs',
     maxSize: '20m',
-    maxFiles: '30d',
+    maxFiles: '10d',
   });
 
   const fileErrorsLogTransport = new transports.DailyRotateFile({
-    level: 'error',
-    filename: 'errors-%DATE%.log',
+    level: 'warn',
+    filename: 'lc-errors-%DATE%.log',
     datePattern: 'YYYY-MM-DD',
     dirname: 'logs',
-    //maxsize: 10 * 1024 * 1024,
     maxSize: '20m',
-    maxFiles: '30d',
+    maxFiles: '10d',
   });
 
   const consoleTransport = new transports.Console({
-    //level: 'info', //process.env.LOG_LEVEL
     handleExceptions: false,
     format: format.combine(format.colorize(), ...loggerFormat),
   });
 
   const logger = mainCreateLogger({
-    level: 'debug',
+    level: process.env.LOG_LEVEL,
     format: format.combine(...loggerFormat),
     transports: [fileLogTransport, fileErrorsLogTransport],
   });
@@ -50,5 +48,3 @@ export const createLogger = (label: string) => {
 
   return logger;
 };
-
-export default createLogger('app');

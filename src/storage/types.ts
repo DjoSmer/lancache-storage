@@ -5,7 +5,7 @@ export interface StorageFileData {
     target: string;
     basePath: string;
     headers: Record<string, string | ReadonlyArray<string>>;
-    status: 'idle' | 'pending' | 'success' | 'error';
+    status: 'idle' | 'pending' | 'success' | 'error' | 'noSave';
 }
 
 export interface StorageEntity extends Omit<StorageFileData, 'headers'> {

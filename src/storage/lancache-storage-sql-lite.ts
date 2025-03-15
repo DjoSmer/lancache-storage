@@ -6,7 +6,7 @@ import { LancacheStorage } from './lancache-storage';
 import { StorageEntity, StorageFileData } from './types';
 
 export class LancacheStorageSqlLite extends LancacheStorage {
-  protected logger = createLogger(LancacheStorageSqlLite.name);
+  logger = createLogger(LancacheStorageSqlLite.name);
 
   private dbFileName = 'sqlLite.db';
   private db: DatabaseSync;

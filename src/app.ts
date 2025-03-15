@@ -12,7 +12,7 @@ export class App {
   constructor(config: Record<string, string>) {
     this.storage = new LancacheStoragePrisma(config.storageDir);
     const defaultRoute = new DefaultRoute(this.storage);
-    this.httpServer = new LancacheServer(defaultRoute.proxyRoute);
+    this.httpServer = new LancacheServer(config.mode === 'proxy' ? defaultRoute.proxyRoute : defaultRoute.storageRoute);
 
     this.httpServer.addRoute('/status', statusRoute);
     this.httpServer.addRoute('/storage-save', storageSaveRoute);
