@@ -89,9 +89,9 @@ export class DefaultRoute {
     storageFile.addInstance(lanReq.requestId, lanReq.getIp());
     lanRes.storageFile = storageFile;
 
-    this.logger.debug(`Storage target - status: ${target.code}${rid} - ${storageFile.status}`);
+    this.logger.debug(`Storage target: ${target.code}${rid} - ${storageFile.status}`);
 
-    return storageFile.status === 'success';
+    return storageFile.isSuccess();
   }
 
   private async downloadToStorage(lanReq: LancacheRequest, lanRes: LancacheResponse): Promise<boolean> {

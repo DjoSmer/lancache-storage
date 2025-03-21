@@ -78,7 +78,6 @@ export class ProxyServer {
       storageFile.close(lanReq.requestId, lanReq.getIp(), 'error');
       this.logger.error(`proxyRes.error ${rid}`, err);
     });
-
     storageFile.headers = proxyRes.headers as Record<string, string>;
     proxyRes.pipe(fileStream);
   }

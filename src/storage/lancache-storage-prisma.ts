@@ -11,7 +11,6 @@ export class LancacheStoragePrisma extends LancacheStorage {
 
   constructor(readonly storagePath: string) {
     super(storagePath);
-
     void this.initTargets();
   }
 

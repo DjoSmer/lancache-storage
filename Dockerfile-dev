@@ -1,0 +1,12 @@
+FROM node:22-alpine
+LABEL version=1
+LABEL description="Node web server. Proxy http traffic and store it if needed"
+LABEL maintainer="DjoSmer <djos.ghub@mail.ru>"
+
+WORKDIR /app
+
+ENV STORAGE_DIR=/data/storage
+
+COPY docker/docker-entrypoint.sh /usr/local/bin
+
+CMD ["npm", "run start:dev"]

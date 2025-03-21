@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "main": "build/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start:dev": "NODE_ENV=development npx nodemon",
-    "start": "ts-node -r tsconfig-paths/register build/index.js",
+    "start": "node build/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Demidov",
-  "license": "ISC",
+  "author": "DjoSmer <djos.ghub@mail.ru>",
+  "license": "MIT",
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.4.1",
@@ -17,16 +17,17 @@
     "http-proxy": "^1.18.1",
     "range-parser": "^1.2.1",
     "winston": "^3.17.0",
-    "winston-daily-rotate-file": "^5.0.0",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0"
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@types/http-proxy": "^1.17.16",
     "@types/node": "^22.13.5",
     "@types/range-parser": "^1.2.7",
     "nodemon": "^3.1.9",
+    "tsc-alias": "^1.8.11",
     "tsx": "^4.19.3",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0"
   }
 }

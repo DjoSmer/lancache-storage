@@ -8,15 +8,18 @@ import { StorageFileData } from './types';
 export class StorageFile {
   instances = new Set<number>();
   private ip: Record<string, { count: number, timerId?: NodeJS.Timeout }> = {}
-  private ipDelay = 5000;
+  private ipDelay = 7500;
   private limitForOneIp = 3;
   private logger: winston.Logger;
+  private timeout = 10 * 60 * 1000; //10min
+  private timeoutTimerId: NodeJS.Timeout | undefined;
 
   constructor(
     private readonly lancacheStorage: LancacheStorage,
     private data: StorageFileData,
   ) {
     this.logger = lancacheStorage.logger;
+    this.runTimer();
   }
 
   addInstance(instance: number, ip: string) {
@@ -28,13 +31,17 @@ export class StorageFile {
 
     this.instances.add(instance);
 
-    if (this.ip[ip].count >= this.limitForOneIp) {
+    if (this.ip[ip].count >= this.limitForOneIp && this.status === 'success') {
       this.status = 'error';
       this.logger.warn(`${ip} asked for ${this.ip[ip].count} times ${this.data.basePath}`);
     }
+
+    this.runTimer();
   }
 
   close(instanceId: number, ip: string, status?: StorageFileData['status']) {
+    if (!this.instances.has(instanceId)) return;
+
     this.instances.delete(instanceId);
 
     if (status) this.status = status;
@@ -47,11 +54,12 @@ export class StorageFile {
   save() {
     if (this.status === 'noSave') {
       this.lancacheStorage.close(this.data);
-      return;
+      return this;
     }
 
     this.lancacheStorage.save(this.data);
     this.logger.debug(`Save storage: ${this.data.basePath}/${this.instances.size}`);
+    return this;
   }
 
   increaseDownloadCount() {
@@ -98,6 +106,10 @@ export class StorageFile {
     return path.join('/', basePath);
   }
 
+  isSuccess() {
+    return this.status === 'success' && fs.existsSync(this.filepath);
+  }
+
   private mkdir() {
     const filepath = path.join(this.lancacheStorage.storagePath, this.data.basePath);
     const dir = path.dirname(filepath);
@@ -105,7 +117,19 @@ export class StorageFile {
   }
 
   private decreaseIpCount(ip: string) {
-    Reflect.deleteProperty(this.ip, ip);
-    if (this.instances.size < 1) this.save();
+    this.ip[ip].count = 0;
+    if (this.instances.size < 1) {
+      this.save();
+      clearTimeout(this.timeoutTimerId);
+    }
+  }
+
+  private runTimer() {
+    clearTimeout(this.timeoutTimerId);
+    this.timeoutTimerId = setTimeout(() => {
+      this.logger.warn(`Storage File Timer has run. ${this.data.basePath}`);
+      this.save();
+      this.lancacheStorage.close(this.data);
+    }, this.timeout);
   }
 }

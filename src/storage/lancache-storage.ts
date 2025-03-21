@@ -54,8 +54,7 @@ export abstract class LancacheStorage {
   }
 
   saveAll() {
-    Array.from(this.openStorageFiles.values()).forEach((storageFile) => storageFile.save());
-    return this.openStorageFiles.size;
+    return Array.from(this.openStorageFiles.values()).map((storageFile) => Array.from(storageFile.save().instances));
   }
 
   close(data: StorageFileData) {

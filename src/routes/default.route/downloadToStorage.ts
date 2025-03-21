@@ -10,11 +10,11 @@ export const downloadToStorage = async (lanReq: LancacheRequest, storageFile: St
   const { range, ...headers } = lanReq.headers;
 
   return new Promise<StorageFile['status']>((resolve, reject) => {
-    http.get(`http://${lanReq.headers.host}:8080${lanReq.url}`,
+    http.get(`http://${lanReq.headers.host}${lanReq.url}`,
       {
         method: 'GET',
         headers,
-        timeout: 5000,
+        timeout: 15000,
       },
       (res) => {
         if (!res.statusCode || res.statusCode > 299) {
