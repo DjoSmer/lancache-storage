@@ -2,6 +2,7 @@ services:
   postgres:
     container_name: postgres
     image: postgres:latest
+    restart: unless-stopped
     shm_size: 256mb
     ports:
       - '5432:5432'
@@ -16,13 +17,13 @@ services:
       timeout: 10s
     networks:
       - lancache
-    restart: unless-stopped
 
   storage:
     container_name: storage
     image: djosmer/lancache-storage:latest
+    restart: unless-stopped
     ports:
-      - '80:80'
+      - '8080:80'
     volumes:
       - ${STORAGE_DIR}:/data/storage
       - ${LOGS_DIR}:/app/logs
@@ -38,10 +39,9 @@ services:
       timeout: 10s
     networks:
       - lancache
-    dns:
-      - 8.8.8.8
-      - 9.9.9.9
-    restart: unless-stopped
+#    dns:
+#      - 8.8.8.8
+#      - 9.9.9.9
 
   storage-watch:
     container_name: storage-watch
@@ -63,8 +63,9 @@ services:
   nginx:
     container_name: nginx
     image: djosmer/lancache-nginx:latest
+    restart: unless-stopped
     ports:
-#      - '80:80'
+      - '80:80'
       - '443:443'
     volumes:
       - ${STORAGE_DIR}:/data/storage
@@ -75,7 +76,9 @@ services:
       - storage
     networks:
       - lancache
-    restart: unless-stopped
+#    dns:
+#      - 8.8.8.8
+#      - 9.9.9.9
 
 networks:
   lancache:

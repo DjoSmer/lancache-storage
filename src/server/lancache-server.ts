@@ -5,21 +5,20 @@ import { LancacheResponse } from './lancache-response';
 import { LancacheRequestListener } from './types';
 
 export class LancacheServer {
-  routes = new Map<string, LancacheRequestListener>();
+  routes: LancacheRequestListener[] = [];
   readonly server = createServer({
     IncomingMessage: LancacheRequest,
     ServerResponse: LancacheResponse,
   });
 
-  constructor(private readonly defaultRouteHandler: LancacheRequestListener) {
+  constructor() {
     this.server.on('request', async (lanReq, lanRes) => {
-      const reqUrl = new URL(`http://${lanReq.headers.host}${lanReq.url}`);
       lanReq.rid = `${lanReq.url}:${lanReq.requestId}`;
-      const routeHandler = this.routes.get(reqUrl.pathname);
+      lanReq.urlClass = new URL(`http://localhost${lanReq.url}`);
 
-      if (routeHandler) return routeHandler(lanReq, lanRes);
-
-      return defaultRouteHandler(lanReq, lanRes);
+      for (const route of this.routes) {
+        if (await route(lanReq, lanRes)) break;
+      }
     });
   }
 
@@ -27,8 +26,8 @@ export class LancacheServer {
     this.server.listen(80);
   }
 
-  addRoute(route: string, handler: LancacheRequestListener) {
-    this.routes.set(route, handler);
+  addRoute(handler: LancacheRequestListener) {
+    this.routes.push(handler);
   }
 
   async getConnections() {

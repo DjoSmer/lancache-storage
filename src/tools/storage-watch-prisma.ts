@@ -119,5 +119,4 @@ setInterval(() => {
     void check();
     minutes = 0;
   }
-  console.log(minutes);
 }, 60 * 1000);

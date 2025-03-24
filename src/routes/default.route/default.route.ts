@@ -21,12 +21,12 @@ export class DefaultRoute {
     if (isLocalhost) {
       lanRes.writeHead(400, 'Host is localhost');
       lanRes.end();
-      return;
+      return true;
     }
 
     if (await this.checkInStorage(lanReq, lanRes)) {
       lanRes.sendFileFromStorage();
-      return;
+      return true;
     }
 
     lanRes.storageStatus('MISS');
@@ -37,7 +37,7 @@ export class DefaultRoute {
       lanRes.destroy(e as Error);
     }
 
-    return;
+    return true;
   };
 
   /**
@@ -49,17 +49,17 @@ export class DefaultRoute {
     if (await this.checkInStorage(lanReq, lanRes)) {
       const storageFile = lanRes.storageFile!;
 
-      lanRes.setHeaders(new Headers(storageFile.headers as unknown as Headers));
+      //lanRes.setHeaders(new Headers(storageFile.headers as unknown as Headers));
       lanRes.storageStatus('HIT');
       lanRes.removeHeader('content-length');
-      lanRes.writeHead(301, {
+      lanRes.writeHead(302, {
         'Location': `${storageFile.relativeFilepath}`,
       });
       lanRes.end();
 
       storageFile.increaseDownloadCount();
       storageFile.close(lanReq.requestId, lanReq.getIp());
-      return;
+      return true;
     }
 
     void this.downloadToStorage(lanReq, lanRes);
@@ -68,7 +68,7 @@ export class DefaultRoute {
     lanRes.writeHead(404, 'File not found in storage');
     lanRes.end();
 
-    return;
+    return true;
   };
 
   private async checkInStorage(lanReq: LancacheRequest, lanRes: LancacheResponse): Promise<boolean> {

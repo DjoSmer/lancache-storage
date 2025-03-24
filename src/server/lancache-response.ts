@@ -10,7 +10,6 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
   storageFile?: StorageFile;
   private _storageStatus: 'HIT' | 'MISS' = 'MISS';
   private logger = createLogger(LancacheResponse.name);
-  lanHeaders: Record<string, string> = {};
 
   constructor(req: LancacheRequest) {
     super(req);
@@ -22,7 +21,6 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
   }
 
   sendFileFromStorage() {
-    const rid = this.req.rid;
     const storageFile = this.storageFile;
 
     if (!storageFile) {
@@ -31,28 +29,31 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
       return;
     }
 
+    this.sendFile(storageFile.filepath, storageFile.headers as unknown as Headers);
+  }
+
+  sendFile(filepath: string, headers?: Headers) {
+    const rid = this.req.rid;
+
     let stream: fs.ReadStream | null = null;
 
     this.on('close', () => {
       if (stream) stream.close();
-      storageFile.increaseDownloadCount();
-      storageFile.close(this.req.requestId, this.req.getIp());
     });
 
     try {
-      const stat = fs.statSync(storageFile.filepath);
+      const stat = fs.statSync(filepath);
       const total = stat.size;
       const rangeHeader = this.req.headers.range;
 
-      const headers = new Headers(storageFile.headers as unknown as Headers);
-      this.setHeaders(headers);
+      this.setHeaders(new Headers(headers));
       this.storageStatus('HIT');
 
       this.logger.debug(`Stream file is stating: ${rid}`);
 
       //Complete file
       if (!rangeHeader) {
-        stream = fs.createReadStream(storageFile.filepath)
+        stream = fs.createReadStream(filepath)
           .on('end', () => {
             this.logger.debug(`Stream is done: ${rid}`);
           });
@@ -81,7 +82,8 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
           this.write(`\r\n--${boundary}\r\n`);
           this.write(`Content-Type: ${contentType}\r\n`);
           this.write(`Content-Range: bytes ${range.start}-${range.end}/${total}\r\n\r\n`);
-          stream = fs.createReadStream(storageFile.filepath, { start: range.start, end: range.end });
+
+          stream = fs.createReadStream(filepath, { start: range.start, end: range.end });
           stream.on('end', () => {
             stream?.close();
             callback();
@@ -107,7 +109,8 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
           'Accept-Ranges': 'bytes',
           'Content-Length': (range.end - range.start) + 1,
         });
-        stream = fs.createReadStream(storageFile.filepath, { start: range.start, end: range.end })
+
+        stream = fs.createReadStream(filepath, { start: range.start, end: range.end })
           .on('end', () => {
             this.logger.debug(`Range Stream is done: ${rid}`);
           });

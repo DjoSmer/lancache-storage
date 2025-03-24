@@ -5,8 +5,8 @@ LABEL maintainer="DjoSmer <djos.ghub@mail.ru>"
 
 WORKDIR /app
 
-ENV STORAGE_DIR=/data/storage
+ENV APP_STORAGE_DIR=/data/storage
 
-COPY docker/docker-entrypoint.sh /usr/local/bin
+COPY docker-entrypoint.sh /usr/local/bin
 
-CMD ["npm", "run start:dev"]
+CMD ["npm", "run", "start:dev"]

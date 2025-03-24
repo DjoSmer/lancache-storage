@@ -15,7 +15,7 @@ model storage {
   target        String
   status        String
   basePath      String   @unique
-  headers       Json
+  headers       Json?
 }
 
 model target {

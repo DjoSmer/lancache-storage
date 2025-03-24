@@ -1,21 +1,24 @@
 import { LancacheServer } from '@app/server';
 import { DefaultRoute } from './routes/default.route';
 
-import { statusRoute } from './routes/status-route';
-import { storageSaveRoute } from './routes/storage-save';
-import { LancacheStorage, LancacheStoragePrisma } from './storage';
+import { statusRoute } from './routes/status.route';
+import { storageSaveRoute } from './routes/storage-save.route';
+import { downloadRoute } from './routes/download.route';
+import { LancacheStorage, LancacheStorageTypeorm } from './storage';
 
 export class App {
   readonly httpServer: LancacheServer;
   readonly storage: LancacheStorage
 
   constructor(config: Record<string, string>) {
-    this.storage = new LancacheStoragePrisma(config.storageDir);
+    this.storage = new LancacheStorageTypeorm(config.storageDir);
     const defaultRoute = new DefaultRoute(this.storage);
-    this.httpServer = new LancacheServer(config.mode === 'proxy' ? defaultRoute.proxyRoute : defaultRoute.storageRoute);
+    this.httpServer = new LancacheServer();
 
-    this.httpServer.addRoute('/status', statusRoute);
-    this.httpServer.addRoute('/storage-save', storageSaveRoute);
+    this.httpServer.addRoute(statusRoute);
+    this.httpServer.addRoute(storageSaveRoute);
+    this.httpServer.addRoute(downloadRoute);
+    this.httpServer.addRoute(config.mode === 'proxy' ? defaultRoute.proxyRoute : defaultRoute.storageRoute);
   }
 
   run() {

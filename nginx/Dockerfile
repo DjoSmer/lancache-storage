@@ -4,8 +4,8 @@ LABEL description="Save only http traffic through nginx -> node or direct connec
 LABEL maintainer="DjoSmer <djos.ghub@mail.ru>"
 
 ENV NGINX_ACCESS_LOG=1 \
-    NGINX_LANCACHE_HOST=localhost:3128 \
-    NGINX_UPSTREAM_DNS="8.8.8.8 8.8.4.4"
+    NGINX_STORAGE_HOST=storage \
+    NGINX_RESOLVERS="127.0.0.11"
 
 COPY root/ /
 

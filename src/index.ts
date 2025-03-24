@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 require('dotenv').config()
 
 import { App } from './app';
@@ -9,7 +10,7 @@ declare global {
 const storageDir = process.env?.APP_STORAGE_DIR
 const mode = process.env?.APP_MODE || 'proxy';
 
-if (!storageDir) throw new Error('STORAGE_DIR is empty');
+if (!storageDir) throw new Error('APP_STORAGE_DIR is empty');
 
 const config = {
   storageDir,

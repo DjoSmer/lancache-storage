@@ -2,9 +2,10 @@ import { createLogger as mainCreateLogger, format, transports } from 'winston';
 import 'winston-daily-rotate-file';
 
 const isDev = process.env.NODE_ENV === 'development';
+const logLevel = process.env.LOG_LEVEL || 'info';
 
 export const createLogger = (label: string, options: { saveToFile?: boolean; console?: boolean; } = {
-  saveToFile: true,
+  saveToFile: logLevel !== 'off',
   console: isDev,
 }) => {
   const { saveToFile, console } = options;
@@ -43,7 +44,7 @@ export const createLogger = (label: string, options: { saveToFile?: boolean; con
   });
 
   const logger = mainCreateLogger({
-    level: process.env.LOG_LEVEL,
+    level: logLevel,
     format: format.combine(...loggerFormat),
     transports: [],
   });

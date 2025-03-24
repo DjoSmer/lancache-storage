@@ -18,7 +18,7 @@ export const downloadToStorage = async (lanReq: LancacheRequest, storageFile: St
       },
       (res) => {
         if (!res.statusCode || res.statusCode > 299) {
-          return reject('noSave');
+          return resolve('noSave');
         }
 
         const fileStream = fs.createWriteStream(storageFile.filepath);

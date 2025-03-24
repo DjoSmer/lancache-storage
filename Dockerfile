@@ -1,4 +1,4 @@
-FROM node:22-alpine as base
+FROM node:22-alpine AS base
 WORKDIR /app
 
 COPY lancache.config.json tsconfig.json package*.json ./
@@ -9,7 +9,7 @@ RUN mkdir -m 755 -p /data/storage ;\
 
 
 # Build
-FROM base as builder
+FROM base AS builder
 WORKDIR /app
 
 COPY src/ ./src

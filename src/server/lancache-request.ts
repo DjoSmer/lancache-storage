@@ -4,6 +4,7 @@ import { Socket } from 'net';
 export class LancacheRequest extends IncomingMessage {
     requestId = Date.now();
     rid: string;
+    urlClass: URL = new URL(`http://localhost`);
 
     constructor(socket: Socket) {
         super(socket);

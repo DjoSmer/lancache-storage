@@ -1,1 +1,1 @@
-resolver ${NGINX_UPSTREAM_DNS} ipv6=off;
+resolver ${NGINX_RESOLVERS} ipv6=off;
