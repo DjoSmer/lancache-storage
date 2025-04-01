@@ -8,7 +8,7 @@ import { createLogger } from '../logger';
 
 config();
 
-const storageDir = process.env.STORAGE_DIR;
+const storageDir = process.env.APP_STORAGE_DIR;
 const storageDiskSize = process.env.STORAGE_DISK_SIZE;
 const storageMaxAge = process.env.STORAGE_MAX_AGE;
 

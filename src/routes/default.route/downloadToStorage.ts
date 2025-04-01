@@ -10,11 +10,11 @@ export const downloadToStorage = async (lanReq: LancacheRequest, storageFile: St
   const { range, ...headers } = lanReq.headers;
 
   return new Promise<StorageFile['status']>((resolve, reject) => {
-    http.get(`http://${lanReq.headers.host}${lanReq.url}`,
+    const clientRequest = http.get(`http://${lanReq.headers.host}${lanReq.url}`,
       {
         method: 'GET',
         headers,
-        timeout: 15000,
+        timeout: 30000,
       },
       (res) => {
         if (!res.statusCode || res.statusCode > 299) {
@@ -33,20 +33,20 @@ export const downloadToStorage = async (lanReq: LancacheRequest, storageFile: St
         res.on('error', (err) => {
           fileStream.removeListener('finish', handleFinish);
           fileStream.close();
-          logger.error(`When saving to the storage: ${rid}`, err);
+          logger.debug(`When saving to the storage: ${rid}`, err);
           return reject('error');
         });
 
         storageFile.headers = res.headers as Record<string, string>;
         res.pipe(fileStream);
+
       })
       .on('error', (e) => {
-        logger.error(`Got error: ${rid} - ${e.message}`);
+        logger.debug(`Got error: ${rid} - ${e.message}`);
         return reject('error');
       })
       .on('timeout', () => {
-        logger.error(`Can download a file timeout is done. ${rid}`);
-        return reject('error');
+        clientRequest.destroy(new Error(`Can download a file timeout is done.`));
       });
   });
 }

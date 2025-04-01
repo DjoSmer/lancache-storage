@@ -37,16 +37,20 @@ export class LancacheStorageTypeorm extends LancacheStorage {
   }
 
   async save(data: StorageFileData) {
-    if ((data as unknown as Storage).id) {
-      await this.db.getRepository(StorageEntity).update({
-        basePath: data.basePath,
-      }, {
-        updatedAt: data.updatedAt,
-        status: data.status,
-        downloadCount: data.downloadCount
-      });
-    } else {
-      await this.db.getRepository(StorageEntity).save(data);
+    try {
+      if ((data as unknown as Storage).id) {
+        await this.db.getRepository(StorageEntity).update({
+          basePath: data.basePath,
+        }, {
+          updatedAt: data.updatedAt,
+          status: data.status,
+          downloadCount: data.downloadCount
+        });
+      } else {
+        await this.db.getRepository(StorageEntity).save(data);
+      }
+    } catch (e) {
+      this.logger.error('Cannot save in db', e);
     }
 
     super.save(data);
