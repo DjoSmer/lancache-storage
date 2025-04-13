@@ -1,11 +1,10 @@
 #!/bin/sh
 set -e
 
-export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}/${POSTGRES_DB}?schema=public&connection_limit=${POSTGRES_POOL}&pool_timeout=30"
-npx prisma db push
+npx typeorm-ts-node-commonjs migration:run -d ./build/db-typeorm/data-source.migration.js
 
 if [ ! -e $APP_STORAGE_DIR/LANCACHE_VERSION ]; then
-  node build/tools/import-targets-prisma.js
+  node build/tools/import-targets-typeorm.js
   echo 1 > $APP_STORAGE_DIR/LANCACHE_VERSION
 fi
 

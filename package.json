@@ -6,13 +6,13 @@
     "build": "tsc && tsc-alias",
     "start:dev": "npx nodemon",
     "start": "node build/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "migration:run": "npx typeorm-ts-node-commonjs migration:run -d ./src/db-typeorm/data-source.migration.ts",
+    "migration:generate": "npx typeorm-ts-node-commonjs migration:generate ./migrations/$npm_config_name -d ./src/db-typeorm/data-source.migration.ts"
   },
   "author": "DjoSmer <djos.ghub@mail.ru>",
   "license": "MIT",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.4.1",
     "dotenv": "^16.4.7",
     "http-proxy": "^1.18.1",
     "pg": "^8.14.1",

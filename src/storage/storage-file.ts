@@ -3,9 +3,10 @@ import path from 'path';
 import winston from 'winston';
 
 import { LancacheStorage } from './lancache-storage';
-import { StorageFileData } from './types';
+import { StorageFileData, StorageFileStatusEnum } from './types';
 
 export class StorageFile {
+  isNew = false;
   instances = new Set<number>();
   private ip: Record<string, { count: number, timerId?: NodeJS.Timeout }> = {}
   private ipDelay = 7500;
@@ -32,7 +33,7 @@ export class StorageFile {
     this.instances.add(instance);
 
     if (this.ip[ip].count >= this.limitForOneIp && this.status === 'success') {
-      this.status = 'error';
+      this.status = StorageFileStatusEnum.error;
       this.logger.warn(`${ip} asked for ${this.ip[ip].count} times ${this.data.basePath}`);
     }
 
@@ -52,13 +53,14 @@ export class StorageFile {
   }
 
   save() {
-    if (this.status === 'noSave') {
+    if (this.status === 'noSave' || (this.status !== 'success' && this.isNew)) {
       this.lancacheStorage.close(this.data);
       return this;
     }
 
-    this.lancacheStorage.save(this.data);
+    this.lancacheStorage.save(this.data, this.isNew);
     this.logger.debug(`Save storage: ${this.data.basePath}/${this.instances.size}`);
+    this.isNew = false;
     return this;
   }
 
@@ -76,15 +78,6 @@ export class StorageFile {
     this.data.updatedAt = new Date();
   }
 
-  get headers() {
-    return this.data.headers;
-  }
-
-  set headers(headers: StorageFileData['headers']) {
-    this.data.headers = headers;
-    this.data.updatedAt = new Date();
-  }
-
   /**
    * if basePath doesn't have extname it can be a dir or a file.
    * if basePath is first/second a file save to first/second.file.
@@ -94,15 +87,13 @@ export class StorageFile {
   get filepath() {
     this.mkdir();
     const extname = path.extname(this.data.basePath);
-    //TODO check for old files in storage | remove date check
-    const basePath = this.data.createdAt.getTime() > 1741801602071 ? this.data.basePath + (!extname ? '.file' : '') : this.data.basePath;
+    const basePath = this.data.basePath + (!extname ? '.file' : '');
     return path.join(this.lancacheStorage.storagePath, basePath);
   }
 
   get relativeFilepath() {
     const extname = path.extname(this.data.basePath);
-    //TODO check for old files in storage | remove date check
-    const basePath = this.data.createdAt.getTime() > 1741801602071 ? this.data.basePath + (!extname ? '.file' : '') : this.data.basePath;
+    const basePath = this.data.basePath + (!extname ? '.file' : '');
     return path.join('/', basePath);
   }
 
@@ -119,8 +110,8 @@ export class StorageFile {
   private decreaseIpCount(ip: string) {
     this.ip[ip].count = 0;
     if (this.instances.size < 1) {
-      this.save();
       clearTimeout(this.timeoutTimerId);
+      this.save();
     }
   }
 

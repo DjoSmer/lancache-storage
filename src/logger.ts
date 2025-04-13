@@ -21,28 +21,6 @@ export const createLogger = (label: string, options: { saveToFile?: boolean; con
     ),
   ];
 
-  const fileLogTransport = new transports.DailyRotateFile({
-    filename: 'lc-actions-%DATE%.log',
-    datePattern: 'YYYY-MM-DD',
-    dirname: 'logs',
-    maxSize: '20m',
-    maxFiles: '10d',
-  });
-
-  const fileErrorsLogTransport = new transports.DailyRotateFile({
-    level: 'warn',
-    filename: 'lc-errors-%DATE%.log',
-    datePattern: 'YYYY-MM-DD',
-    dirname: 'logs',
-    maxSize: '20m',
-    maxFiles: '10d',
-  });
-
-  const consoleTransport = new transports.Console({
-    handleExceptions: false,
-    format: format.combine(format.colorize(), ...loggerFormat),
-  });
-
   const logger = mainCreateLogger({
     level: logLevel,
     format: format.combine(...loggerFormat),
@@ -50,11 +28,32 @@ export const createLogger = (label: string, options: { saveToFile?: boolean; con
   });
 
   if (saveToFile) {
+    const fileLogTransport = new transports.DailyRotateFile({
+      filename: 'lc-actions-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      dirname: 'logs',
+      maxSize: '20m',
+      maxFiles: '10d',
+    });
+
+    const fileErrorsLogTransport = new transports.DailyRotateFile({
+      level: 'warn',
+      filename: 'lc-errors-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      dirname: 'logs',
+      maxSize: '20m',
+      maxFiles: '10d',
+    });
+
     logger.add(fileLogTransport);
     logger.add(fileErrorsLogTransport);
   }
 
   if (console) {
+    const consoleTransport = new transports.Console({
+      handleExceptions: false,
+      format: format.combine(format.colorize(), ...loggerFormat),
+    });
     logger.add(consoleTransport);
   }
 

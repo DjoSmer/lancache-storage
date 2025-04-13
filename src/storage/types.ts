@@ -2,18 +2,13 @@ export interface StorageFileData {
     createdAt: Date;
     updatedAt: Date;
     downloadCount: number;
-    target: string;
+    targetId: number;
     basePath: string;
-    headers: Record<string, string | ReadonlyArray<string>>;
-    status: 'idle' | 'pending' | 'success' | 'error' | 'noSave';
-}
-
-export interface StorageEntity extends Omit<StorageFileData, 'headers'> {
-    id: number;
-    headers: string;
+    status: StorageFileStatusEnum | 'noSave';
 }
 
 export interface StorageTarget {
+    id: number;
     code: string;
     userAgent?: string;
     host?: string;
@@ -24,4 +19,11 @@ export interface StorageTargetProps {
     host?: string;
     userAgent?: string;
     url?: string;
+}
+
+export enum StorageFileStatusEnum {
+    idle = 'idle',
+    pending = 'pending',
+    success = 'success',
+    error = 'error',
 }

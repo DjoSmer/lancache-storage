@@ -29,10 +29,10 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
       return;
     }
 
-    this.sendFile(storageFile.filepath, storageFile.headers as unknown as Headers);
+    this.sendFile(storageFile.filepath);
   }
 
-  sendFile(filepath: string, headers?: Headers) {
+  sendFile(filepath: string) {
     const rid = this.req.rid;
 
     let stream: fs.ReadStream | null = null;
@@ -46,7 +46,6 @@ export class LancacheResponse extends ServerResponse<LancacheRequest> {
       const total = stat.size;
       const rangeHeader = this.req.headers.range;
 
-      this.setHeaders(new Headers(headers));
       this.storageStatus('HIT');
 
       this.logger.debug(`Stream file is stating: ${rid}`);

@@ -4,6 +4,7 @@ import { Socket } from 'net';
 
 import { createLogger } from '@app/logger';
 import { LancacheRequest, LancacheResponse } from '@app/server';
+import { StorageFileStatusEnum } from '@app/storage';
 import { downloadToStorage } from './downloadToStorage';
 
 export class ProxyServer {
@@ -38,14 +39,14 @@ export class ProxyServer {
     }
 
     const storageFile = lanRes.storageFile;
-    storageFile.status = 'pending';
+    storageFile.status = StorageFileStatusEnum.pending;
 
     if (!proxyRes.statusCode || proxyRes.statusCode > 299) {
       storageFile.close(lanReq.requestId, lanReq.getIp(), 'noSave');
       return;
     }
 
-    let status: typeof storageFile['status'] = 'error';
+    let status: typeof storageFile['status'] = StorageFileStatusEnum.error;
 
     if (lanReq.headers.range) {
       lanRes.storageFile = undefined;
@@ -67,7 +68,7 @@ export class ProxyServer {
     const handleFinish = () => {
       this.logger.debug(`File download in the storage: ${rid}`);
       fileStream.close();
-      storageFile.close(lanReq.requestId, lanReq.getIp(), 'success');
+      storageFile.close(lanReq.requestId, lanReq.getIp(), StorageFileStatusEnum.success);
     }
 
     fileStream.on('finish', handleFinish);
@@ -75,10 +76,9 @@ export class ProxyServer {
     proxyRes.on('error', (err) => {
       fileStream.removeListener('finish', handleFinish);
       fileStream.close();
-      storageFile.close(lanReq.requestId, lanReq.getIp(), 'error');
+      storageFile.close(lanReq.requestId, lanReq.getIp(), StorageFileStatusEnum.error);
       this.logger.error(`proxyRes.error ${rid}`, err);
     });
-    storageFile.headers = proxyRes.headers as Record<string, string>;
     proxyRes.pipe(fileStream);
   }
 

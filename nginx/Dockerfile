@@ -3,7 +3,7 @@ LABEL version=1
 LABEL description="Save only http traffic through nginx -> node or direct connection to node and steam https traffic."
 LABEL maintainer="DjoSmer <djos.ghub@mail.ru>"
 
-ENV NGINX_ACCESS_LOG=1 \
+ENV NGINX_ACCESS_LOG=0 \
     NGINX_STORAGE_HOST=storage \
     NGINX_RESOLVERS="127.0.0.11"
 

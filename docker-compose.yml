@@ -58,7 +58,7 @@ services:
     networks:
       - lancache
     restart: unless-stopped
-    command: ["node", "build/tools/storage-watch-prisma.js"]
+    command: ["node", "build/tools/storage-watch-typeorm.js"]
 
   nginx:
     container_name: nginx

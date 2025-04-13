@@ -25,7 +25,7 @@ export class LancacheStorageFile extends LancacheStorage {
 
     fs.writeFileSync(filepath, JSON.stringify(data));
 
-    super.save(data);
+    super.save(data, false);
   }
 
 }

@@ -1,9 +1,12 @@
 import { config } from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { DataSource } from 'typeorm';
 import { createLogger } from '../logger';
+import { dataSourceOptions } from '../db-typeorm/data-source.options';
+import { TargetEntity } from '../db-typeorm/target.entity';
 
 config();
-const prisma = new PrismaClient();
+
+const db = new DataSource(dataSourceOptions);
 
 const cacheDomainsUrl = process.env.CACHE_DOMAINS_URL;
 
@@ -12,7 +15,7 @@ if (!cacheDomainsUrl) {
 }
 
 async function setup(cacheDomainsUrl: string) {
-  const logger = createLogger('ImportTargetPrisma', { saveToFile: true, console: true });
+  const logger = createLogger('ImportTargetTypeorm', { saveToFile: true, console: true });
   const reCacheDomains = await fetch(cacheDomainsUrl);
   const { cache_domains } = await reCacheDomains.json();
 
@@ -22,26 +25,18 @@ async function setup(cacheDomainsUrl: string) {
 
   const baseUrl = cacheDomainsUrl.replace(/[^/]*\.json$/i, '');
 
-  await prisma.target.deleteMany({
-    where: {
-      NOT: {
-        code: 'all'
-      }
-    }
-  });
+  await db.getRepository(TargetEntity).delete({});
 
-  await prisma.target.createMany({
-    data: [
-      {
-        code: 'steam',
-        userAgent: 'Valve/Steam HTTP Client 1.0',
-      },
-      {
-        code: 'riot',
-        userAgent: 'RiotNetwork/1.0.0',
-      },
-    ],
-  });
+  await db.getRepository(TargetEntity).insert([
+    {
+      code: 'steam',
+      userAgent: 'Valve/Steam HTTP Client 1.0',
+    },
+    {
+      code: 'riot',
+      userAgent: 'RiotNetwork/1.0.0',
+    },
+  ]);
 
   const data = [];
   for (const cacheDomain of cache_domains) {
@@ -64,11 +59,10 @@ async function setup(cacheDomainsUrl: string) {
     }
   }
 
-  await prisma.target.createMany({
-    data,
-  });
+  await db.getRepository(TargetEntity).insert(data);
 
   logger.info('Done');
   logger.close();
 }
-void setup(cacheDomainsUrl);
+
+db.initialize().then(() => setup(cacheDomainsUrl));

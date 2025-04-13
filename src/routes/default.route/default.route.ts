@@ -1,6 +1,7 @@
 import { createLogger } from '@app/logger';
+import { LancacheRequest, LancacheRequestListener, LancacheResponse } from '@app/server';
 import { LancacheStorage } from '@app/storage/lancache-storage';
-import { LancacheRequestListener, LancacheResponse, LancacheRequest } from '@app/server';
+import { StorageFileStatusEnum } from '@app/storage';
 import { downloadToStorage } from './downloadToStorage';
 
 import { ProxyServer } from './proxy-server';
@@ -49,7 +50,6 @@ export class DefaultRoute {
     if (await this.checkInStorage(lanReq, lanRes)) {
       const storageFile = lanRes.storageFile!;
 
-      //lanRes.setHeaders(new Headers(storageFile.headers as unknown as Headers));
       lanRes.storageStatus('HIT');
       lanRes.removeHeader('content-length');
       lanRes.writeHead(302, {
@@ -85,7 +85,7 @@ export class DefaultRoute {
 
     const basePath = target.code + pathname;
 
-    const storageFile = await this.lancacheStorage.get(basePath) || this.lancacheStorage.create(basePath);
+    const storageFile = await this.lancacheStorage.get(basePath) || this.lancacheStorage.create(basePath, target);
     storageFile.addInstance(lanReq.requestId, lanReq.getIp());
     lanRes.storageFile = storageFile;
 
@@ -103,9 +103,9 @@ export class DefaultRoute {
     }
 
     const storageFile = lanRes.storageFile;
-    storageFile.status = 'pending';
+    storageFile.status = StorageFileStatusEnum.pending;
 
-    let status: typeof storageFile['status'] = 'error';
+    let status: typeof storageFile['status'] = StorageFileStatusEnum.error;
     for (let x = 0; x < 3; x++) {
       try {
         status = await downloadToStorage(lanReq, storageFile, this.logger);

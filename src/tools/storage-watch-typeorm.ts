@@ -2,9 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import { config } from 'dotenv';
-import { PrismaClient, storage } from '@prisma/client';
+import { DataSource, In, LessThanOrEqual } from 'typeorm';
 import winston from 'winston';
 import { createLogger } from '../logger';
+import { dataSourceOptions } from '../db-typeorm/data-source.options';
+import { StorageEntity } from '../db-typeorm/storage.entity';
 
 config();
 
@@ -16,44 +18,37 @@ if (!storageDir) {
   throw new Error(`Storage Dir is empty`);
 }
 
-const maxAgeMatch = storageMaxAge?.match(/^([0-9]*)([mwd])$/);
+const maxAgeMatch = storageMaxAge?.match(/^([0-9.]*)([mwd])$/);
 if (!maxAgeMatch) {
   throw new Error(`Storage Max Age doesn't match mask 1m/4w/31d`);
 }
 
-const diskSizeMatch = storageDiskSize?.match(/^([0-9]*)([TGM])$/i);
+const diskSizeMatch = storageDiskSize?.match(/^([0-9.]*)([TGM])$/i);
 if (!diskSizeMatch) {
   throw new Error(`Storage Disk Size doesn't match mask 1T/1024G/10240M`);
 }
 
-let prisma: PrismaClient;
+const db = new DataSource(dataSourceOptions);
 let logger: winston.Logger;
 
-const deleteFiles = async (storages: storage[]) => {
-  if (!storages || !storages.length || !prisma) return;
+const deleteFiles = async (storages: StorageEntity[]) => {
+  if (!storages || !storages.length) return;
 
-  const ids = [];
-  for (const storage of storages) {
-    let { id, basePath, createdAt } = storage;
-    const extname = path.extname(basePath);
-    //TODO remove date check
-    basePath = createdAt.getTime() > 1741801602071 ? basePath + (!extname ? '.file' : '') : basePath;
+  const toDelete: string[] = [];
+  for (const { basePath, updatedAt, downloadCount } of storages) {
     const filepath = path.join(storageDir, basePath);
     if (fs.existsSync(filepath)) fs.rmSync(filepath);
-    ids.push(id);
+    if (!fs.existsSync(filepath)) toDelete.push(basePath);
+    logger.debug(`Delete ${basePath} / ${downloadCount} / ${updatedAt}`);
   }
 
-  for (let x = 0; x < ids.length; x += 1000) {
-    await prisma.storage.deleteMany({
-      where: {
-        id: {
-          in: ids.slice(x, x + 1000),
-        },
-      },
+  for (let x = 0; x < toDelete.length; x += 100) {
+    await db.getRepository(StorageEntity).delete({
+      basePath: In(toDelete.slice(x, x + 100)),
     });
   }
 
-  logger.warn(`${(new Date).toJSON()} Delete ${storages.length} files in storage.`);
+  logger.warn(`Delete ${storages.length} files in storage.`);
 };
 
 const [, maxAge, maxAgeUnit] = maxAgeMatch;
@@ -66,8 +61,9 @@ const sizeUnits: Record<string, number> = {
 const maxSize = +size * sizeUnits[unit.toUpperCase()];
 
 const check = async () => {
-  prisma = new PrismaClient();
-  logger = createLogger('StorageWatchPrisma', { saveToFile: true, console: true });
+  if (!db.isInitialized) await db.initialize();
+
+  logger = createLogger('StorageWatchTypeorm', { saveToFile: true, console: true });
 
   const date = new Date();
   if (maxAgeUnit === 'm') {
@@ -78,11 +74,12 @@ const check = async () => {
     date.setDate(date.getDate() - +maxAge);
   }
 
-  const storages = await prisma.storage.findMany({
+  const storages = await db.getRepository(StorageEntity).find({
+    select: {
+      basePath: true,
+    },
     where: {
-      updatedAt: {
-        lte: date,
-      },
+      updatedAt: LessThanOrEqual(date),
     },
   });
   await deleteFiles(storages);
@@ -92,31 +89,36 @@ const check = async () => {
     const stdout = execSync(`du -sk ${storageDir} | grep ${storageDir} | awk '{print $1}'`);
     const totalSize = Number(stdout.toString().replace(/\s*/g, ''));
 
-    logger.warn(stdout.toString(), 'stdout');
-    logger.warn(`${(new Date).toJSON()} Current storage size ${totalSize}/${maxSize}.`);
+    logger.warn(`Current storage size ${totalSize}/${maxSize} - ${i}.`);
 
     if (totalSize < maxSize) {
       break;
     }
 
-    const storages = await prisma.storage.findMany({
-      orderBy: {
+    const storages = await db.getRepository(StorageEntity).find({
+      select: {
+        basePath: true,
+      },
+      order: {
         updatedAt: 'asc',
       },
-      take: 100,
+      take: 1000,
     });
 
     await deleteFiles(storages);
   }
 
-  prisma.$disconnect();
   logger.close();
 };
-console.log(`${(new Date).toJSON()} Storage watch is running`);
-let minutes = 0;
-setInterval(() => {
-  if (++minutes >= 60) {
-    void check();
-    minutes = 0;
+
+console.log(`${(new Date).toJSON()}: Storage watch is running`);
+
+let times = 0;
+const run = async () => {
+  if (++times >= 15 * 60) {
+    times = 0;
+    await check();
   }
-}, 60 * 1000);
+  setTimeout(run, 4000);
+};
+setTimeout(run, 4000);

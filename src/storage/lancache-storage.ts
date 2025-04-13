@@ -1,9 +1,9 @@
 import winston from 'winston';
 
-import { StorageFile } from './storage-file';
-import { StorageFileData, StorageTarget, StorageTargetProps } from './types';
-
 import lancacheConfig from '../../lancache.config.json';
+
+import { StorageFile } from './storage-file';
+import { StorageFileData, StorageFileStatusEnum, StorageTarget, StorageTargetProps } from './types';
 
 export abstract class LancacheStorage {
   abstract logger: winston.Logger;
@@ -32,23 +32,28 @@ export abstract class LancacheStorage {
 
   abstract find(basePath: string): Promise<StorageFileData>;
 
-  create(basePath: string) {
+  create(basePath: string, target: StorageTarget) {
     const storageFile = new StorageFile(this, {
       createdAt: new Date(),
       updatedAt: new Date(),
       downloadCount: 0,
-      target: basePath.split('/').at(0) || 'unknown',
+      targetId: target.id,
       basePath,
-      headers: {},
-      status: 'idle',
+      status: StorageFileStatusEnum.idle,
     });
+    storageFile.isNew = true;
+
+    if (this.openStorageFiles.has(basePath)) {
+      this.logger.debug(`Return exist file storage: ${basePath}`);
+      return this.openStorageFiles.get(basePath);
+    }
 
     this.logger.debug(`Create new file storage: ${basePath}`);
     this.openStorageFiles.set(basePath, storageFile);
     return storageFile;
   }
 
-  save(data: StorageFileData) {
+  save(data: StorageFileData, isNew: boolean) {
     const storageFile = this.openStorageFiles.get(data.basePath);
     if (storageFile && storageFile.instances.size < 1) this.close(data);
   }

@@ -6,10 +6,12 @@
     ],
     "targets": [
         {
+            "id": 1,
             "code": "steam",
             "userAgent": "Valve/Steam HTTP Client 1.0"
         },
         {
+            "id": 2,
             "code": "riot",
             "userAgent": "RiotNetwork/1.0.0"
         }
