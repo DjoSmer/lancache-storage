@@ -28,6 +28,7 @@ WORKDIR /app
 
 ENV APP_STORAGE_DIR=/data/storage \
     LOG_LEVEL=info \
+    DB_LOG=0 \
     STORAGE_DISK_SIZE=512G \
     STORAGE_MAX_AGE=1w
 

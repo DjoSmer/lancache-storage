@@ -14,5 +14,5 @@ export const dataSourceOptions: DataSourceOptions = {
   database: process.env.POSTGRES_DB,
   entities: [StorageEntity, TargetEntity],
   synchronize: false,
-  logging: false,
+  logging: process.env.DB_LOG === '1',
 }

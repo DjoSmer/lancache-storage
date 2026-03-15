@@ -7,7 +7,7 @@ declare global {
   var app: App;
 }
 
-const storageDir = process.env?.APP_STORAGE_DIR
+const storageDir = process.env?.APP_STORAGE_DIR;
 const mode = process.env?.APP_MODE || 'proxy';
 
 if (!storageDir) throw new Error('APP_STORAGE_DIR is empty');

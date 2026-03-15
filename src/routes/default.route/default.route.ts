@@ -53,7 +53,7 @@ export class DefaultRoute {
       lanRes.storageStatus('HIT');
       lanRes.removeHeader('content-length');
       lanRes.writeHead(302, {
-        'Location': `${storageFile.relativeFilepath}`,
+        location: String(storageFile.relativeFilepath),
       });
       lanRes.end();
 

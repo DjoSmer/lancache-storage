@@ -39,9 +39,6 @@ services:
       timeout: 10s
     networks:
       - lancache
-#    dns:
-#      - 8.8.8.8
-#      - 9.9.9.9
 
   storage-watch:
     container_name: storage-watch
@@ -60,6 +57,22 @@ services:
     restart: unless-stopped
     command: ["node", "build/tools/storage-watch-typeorm.js"]
 
+#  storage-sync:
+#    container_name: storage-sync
+#    image: djosmer/lancache-storage:latest
+#    volumes:
+#      - ${STORAGE_DIR}:/data/storage
+#    env_file:
+#      - .env
+#    depends_on:
+#      storage:
+#        condition: service_healthy
+#      postgres:
+#        condition: service_healthy
+#    networks:
+#      - lancache
+#    command: ["node", "build/tools/sync-storage-with-db.js"]
+
   nginx:
     container_name: nginx
     image: djosmer/lancache-nginx:latest
@@ -76,9 +89,6 @@ services:
       - storage
     networks:
       - lancache
-#    dns:
-#      - 8.8.8.8
-#      - 9.9.9.9
 
 networks:
   lancache:

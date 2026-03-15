@@ -5,6 +5,7 @@ import { LancacheResponse } from './lancache-response';
 import { LancacheRequestListener } from './types';
 
 export class LancacheServer {
+  port: number;
   routes: LancacheRequestListener[] = [];
   readonly server = createServer({
     IncomingMessage: LancacheRequest,
@@ -12,6 +13,8 @@ export class LancacheServer {
   });
 
   constructor() {
+    this.port = Number(process.env?.HTTP_PORT) || 80;
+
     this.server.on('request', async (lanReq, lanRes) => {
       lanReq.rid = `${lanReq.url}:${lanReq.requestId}`;
       lanReq.urlClass = new URL(`http://localhost${lanReq.url}`);
@@ -23,7 +26,7 @@ export class LancacheServer {
   }
 
   run() {
-    this.server.listen(80);
+    this.server.listen(this.port);
   }
 
   addRoute(handler: LancacheRequestListener) {

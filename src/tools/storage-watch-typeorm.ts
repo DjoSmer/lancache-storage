@@ -35,11 +35,15 @@ const deleteFiles = async (storages: StorageEntity[]) => {
   if (!storages || !storages.length) return;
 
   const toDelete: string[] = [];
-  for (const { basePath, updatedAt, downloadCount } of storages) {
+  for (const storage of storages) {
+    let { updatedAt, downloadCount } = storage;
+    let basePath = storage.basePath;
+    const extname = path.extname(basePath);
+    basePath = basePath + (!extname ? '.file' : '');
     const filepath = path.join(storageDir, basePath);
     if (fs.existsSync(filepath)) fs.rmSync(filepath);
-    if (!fs.existsSync(filepath)) toDelete.push(basePath);
-    logger.debug(`Delete ${basePath} / ${downloadCount} / ${updatedAt}`);
+    if (!fs.existsSync(filepath)) toDelete.push(storage.basePath);
+    logger.debug(`Delete ${basePath} / ${downloadCount} / ${updatedAt.toJSON()}`);
   }
 
   for (let x = 0; x < toDelete.length; x += 100) {
@@ -48,7 +52,7 @@ const deleteFiles = async (storages: StorageEntity[]) => {
     });
   }
 
-  logger.warn(`Delete ${storages.length} files in storage.`);
+  logger.warn(`Delete ${storages.length}/${toDelete.length} files in storage.`);
 };
 
 const [, maxAge, maxAgeUnit] = maxAgeMatch;
@@ -76,6 +80,8 @@ const check = async () => {
 
   const storages = await db.getRepository(StorageEntity).find({
     select: {
+      updatedAt: true,
+      downloadCount: true,
       basePath: true,
     },
     where: {
@@ -97,6 +103,8 @@ const check = async () => {
 
     const storages = await db.getRepository(StorageEntity).find({
       select: {
+        updatedAt: true,
+        downloadCount: true,
         basePath: true,
       },
       order: {
@@ -113,7 +121,7 @@ const check = async () => {
 
 console.log(`${(new Date).toJSON()}: Storage watch is running`);
 
-let times = 0;
+let times = 15 * 60 - 2 * 60 / 4;
 const run = async () => {
   if (++times >= 15 * 60) {
     times = 0;

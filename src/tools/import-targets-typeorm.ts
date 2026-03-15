@@ -36,6 +36,9 @@ async function setup(cacheDomainsUrl: string) {
       code: 'riot',
       userAgent: 'RiotNetwork/1.0.0',
     },
+    {
+      code: 'any',
+    },
   ]);
 
   const data = [];
