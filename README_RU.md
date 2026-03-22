@@ -29,7 +29,7 @@
 
 ### Lancache-Storage
 - Скачайте
-  - *[docker-composer.yml](./docker-composer.yml)*
+  - *[docker-compose.yml](./docker-compose.yml)*
   - *[example.env](./example.env)* -> **.env**. 
 - Отредактируйте **.env** под ваши настройки.
 - **docker compose up -d**

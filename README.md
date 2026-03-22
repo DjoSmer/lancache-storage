@@ -1,4 +1,5 @@
-# Lancache-Storage [RU](./README_RU.md)
+# Lancache-Storage 
+[RU Version](./README_RU.md)
 
 A web storage system for files. It proxies traffic and stores files when needed.
 For example, if you have many devices on the same network and want to avoid repeatedly downloading updates, games, or other files from the internet.
@@ -28,7 +29,7 @@ If you don’t need management and want it to work out of the box, you can run t
 
 ### Lancache-Storage
 - Download:
-  - *[docker-composer.yml](./docker-composer.yml)*
+  - *[docker-compose.yml](./docker-compose.yml)*
   - *[example.env](./example.env)* → rename to **.env**
 - Edit **.env** according to your setup
 - Run: **docker compose up -d**
