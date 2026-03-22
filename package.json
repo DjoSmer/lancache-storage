@@ -1,5 +1,5 @@
 {
-  "name": "lancacheproxy",
+  "name": "lancache-storage",
   "version": "1.5.0",
   "main": "build/index.js",
   "scripts": {
